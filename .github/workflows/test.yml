@@ -1,0 +1,60 @@
+name: Test Demo Script
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, '3.10', 3.11]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libglu1-mesa-dev freeglut3-dev
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run import tests
+      run: |
+        python -c "import dipy; print('DIPY version:', dipy.__version__)"
+        python -c "import nibabel; print('Nibabel version:', nibabel.__version__)"
+        python -c "import networkx; print('NetworkX version:', networkx.__version__)"
+        python -c "import sklearn; print('Scikit-learn version:', sklearn.__version__)"
+        python -c "import matplotlib; print('Matplotlib version:', matplotlib.__version__)"
+    
+    - name: Test package import
+      run: |
+        python -c "from dmri_analysis import utils; print('Package imports successfully')"
+    
+    - name: Run demo script (import test only)
+      run: |
+        # Test the imports in demo.py without running full analysis
+        python -c "
+        import sys
+        sys.path.insert(0, '.')
+        from demo import main
+        print('Demo script imports work correctly')
+        "
+    
+    - name: Check code style (if flake8 available)
+      run: |
+        pip install flake8 || echo 'Flake8 not available, skipping style check'
+        flake8 --select=E9,F63,F7,F82 --show-source --statistics . || echo 'Style check completed'
+      continue-on-error: true
